@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # mypetshop
 
 A new Flutter project.
@@ -15,3 +16,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# myPetShop
+A web-based Pet Shop Management System designed to manage pet sales, products, and customer orders.
+>>>>>>> 57cc2f0317727fd814529866e6d0ac7173c5100b
