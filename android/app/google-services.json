@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "803223611065",
+    "project_id": "role-based-login-3b056",
+    "storage_bucket": "role-based-login-3b056.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:803223611065:android:578c2250cae3e7648c9d68",
+        "android_client_info": {
+          "package_name": "com.example.mypetshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbM_SZUCYYRy2te-E_lphcb5DaJd0-Oro"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
