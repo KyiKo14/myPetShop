@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Admin/Model/add_items_model.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 
 final addItemProvider = StateNotifierProvider<AddItemNotifier, AddItemState>((
   ref,
@@ -46,10 +47,17 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     state = state.copyWith(sizes: [...state.sizes, size]);
   }
 
-  void removeSize(String size) {
+   void removeSize(String size) {
     state = state.copyWith(sizes: state.sizes.where((s) => s != size).toList());
   }
+   // for color
+  void addColor(String color) {
+    state = state.copyWith(colors: [...state.colors, color]);
+  }
 
+  void removeColor(String color) {
+    state = state.copyWith(colors: state.colors.where((c) => c != color).toList());
+  }
   // for discount
   void toggleDiscount(bool? isDiscounted) {
     state = state.copyWith(isDiscounted: isDiscounted);
@@ -58,8 +66,8 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
   void setDiscountPercentage(String percentage) {
     state = state.copyWith(discountPercentage: percentage);
   }
-  // to hand the loading indicator
 
+  // to hand the loading indicator
   void setLoading(bool isLoading) {
     state = state.copyWith(isLoading: isLoading);
   }
@@ -77,6 +85,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
+
   // to upload and save the items
   Future<void> uploadAndSaveItem(String name, String price) async {
     if (name.isEmpty ||
@@ -84,52 +93,51 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
         state.imagePath == null ||
         state.selectedCategory == null ||
         state.sizes.isEmpty ||
+        state.colors.isEmpty ||
         (state.isDiscounted && state.discountPercentage == null)) {
       throw Exception("Please fill all the field an upload an image.");
     }
     state = state.copyWith(isLoading: true);
-    try{
+    try {
       // upload image to firebase storage
+     
       final fileName = DateTime.now().microsecondsSinceEpoch.toString();
       final reference = FirebaseStorage.instance.ref().child('image/$fileName');
-      await reference.putFile(File(state.imagePath!));
+      
+      if (kIsWeb) {
+        // Web ဖြစ်ခဲ့ရင် ပုံကို Network bytes အနေနဲ့ upload လုပ်ရပါတယ်
+        await reference.putData(await XFile(state.imagePath!).readAsBytes());
+      } else {
+        // Mobile (Android/iOS) ဖြစ်ခဲ့ရင် လက်ရှိအတိုင်း putFile သုံးရပါတယ်
+        await reference.putFile(File(state.imagePath!));
+      }
+      
       final imageUrl = await reference.getDownloadURL();
 
-      // save item to firestore 
+      // save item to firestore
       final String uid = FirebaseAuth.instance.currentUser!.uid;
       await items.add({
-        'name':name,
-        'price':int.tryParse(price),
+        'name': name,
+        'price': int.tryParse(price),
         'image': imageUrl,
-        'uploadedBy':uid,
-        'category':state.selectedCategory,
+        'uploadedBy': uid,
+        'category': state.selectedCategory,
         'size': state.sizes,
+        'color': state.colors,
         'isDiscounted': state.isDiscounted,
-        'discountPercentage': state.isDiscounted? int.tryParse(state.discountPercentage!):0,
-
+        'discountPercentage': state.isDiscounted
+            ? int.tryParse(state.discountPercentage!)
+            : 0,
       });
       // Reset state after successfully upload the data
       state = AddItemState();
-
-
-
-
-    }catch(e){
+    } catch (e) {
       throw Exception('Error saving item:$e');
-
-    }finally{
+    } finally {
       state = state.copyWith(isLoading: false);
     }
   }
-  
 }
-
-
-
-
-
-
-
 
 // we have complete all the login part to upload the data
 // i have create a category section in firebase

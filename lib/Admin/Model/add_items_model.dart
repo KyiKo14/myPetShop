@@ -4,7 +4,7 @@ class AddItemState {
   final String? selectedCategory;
   final List<String> categories;
   final List<String> sizes;
-  // final List<String> medicines;
+  final List<String> colors;
   final bool isDiscounted;
   final String? discountPercentage;
 
@@ -14,7 +14,7 @@ class AddItemState {
     this.selectedCategory,
     this.categories = const [],
     this.sizes = const [],
-    // this.medicines = const[],
+    this.colors = const[],
     this.isDiscounted = false,
     this.discountPercentage,
   });
@@ -25,7 +25,7 @@ class AddItemState {
     String? selectedCategory,
     List<String>? categories,
     List<String>? sizes,
-    // List<String>? medicines,
+    List<String>? colors,
     bool? isDiscounted,
     String? discountPercentage,
   }) {
@@ -35,6 +35,9 @@ class AddItemState {
       selectedCategory: selectedCategory ?? this.selectedCategory,
       categories: categories ?? this.categories,
       sizes: sizes ?? this.sizes,
+      colors: colors ?? this.colors,
+      isDiscounted: isDiscounted ?? this.isDiscounted,
+      discountPercentage: discountPercentage ?? this.discountPercentage,
     );
   }
 }

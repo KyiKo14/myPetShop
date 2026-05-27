@@ -1,8 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
-
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
+// import 'dart:io';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Admin/Controller/add_items_controller.dart';
@@ -15,7 +13,7 @@ class AddItems extends ConsumerWidget {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _sizeController = TextEditingController();
-  final TextEditingController _medicineController = TextEditingController();
+  final TextEditingController _colorController = TextEditingController();
   final TextEditingController _discountpercentageController =
       TextEditingController();
 
@@ -62,7 +60,6 @@ class AddItems extends ConsumerWidget {
               // for name
               TextField(
                 controller: _nameController,
-
                 decoration: const InputDecoration(
                   labelText: "Name",
                   border: OutlineInputBorder(),
@@ -72,7 +69,6 @@ class AddItems extends ConsumerWidget {
               //for price
               TextField(
                 controller: _priceController,
-
                 decoration: const InputDecoration(
                   labelText: "Price",
                   border: OutlineInputBorder(),
@@ -94,7 +90,6 @@ class AddItems extends ConsumerWidget {
                   );
                 }).toList(),
               ),
-
               // for size
               const SizedBox(height: 10),
               TextField(
@@ -113,22 +108,40 @@ class AddItems extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: state.sizes
-                    .map((size) => Chip(
-                      onDeleted: () => notifier.removeSize(size),
-                      label: Text(size)))
+                    .map(
+                      (size) => Chip(
+                        onDeleted: () => notifier.removeSize(size),
+                        label: Text(size),
+                      ),
+                    )
                     .toList(),
               ),
               const SizedBox(height: 10),
               // for Medicines
               TextField(
-                controller: _medicineController,
+                controller: _colorController,
 
                 decoration: const InputDecoration(
-                  labelText: "Medicine",
+                  labelText: "Colors",
                   border: OutlineInputBorder(),
                 ),
+                onSubmitted: (value){
+                  notifier.addColor(value);
+                  _colorController.clear();
+                },
               ),
-
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: state.colors
+                    .map(
+                      (color) => Chip(
+                        onDeleted: () => notifier.removeColor(color),
+                        label: Text(color),
+                      ),
+                    )
+                    .toList(),
+              ),
               // Wrap(spacing: 8,children: state.sizes.map(
               //   (size)=> Chip(
               //     label: Text(size),
@@ -158,44 +171,30 @@ class AddItems extends ConsumerWidget {
                         notifier.setDiscountPercentage(value);
                       },
                     ),
-                    const SizedBox(height: 10,),
-                    // state.isLoading? Center(
-                    //   child: CircularProgressIndicator(),
-                    //   )
-                    //   :Center(
-                    //     child: MyButton(onTab: () async{
-                    //       try
-                    //     }, buttonText: buttonText),
-                    //   )
-                    
+                    const SizedBox(height: 10),
                   ],
                 ),
               const SizedBox(height: 20),
               const SizedBox(height: 10),
-                    state.isLoading
-                        ? const Center(
-                          child: CircularProgressIndicator(),
-                          )
-                        : Center(
-                            child: MyButton(
-                              onTab: () async {
-                                try {
-                                  await notifier.uploadAndSaveItem(
-                                    _nameController.text,
-                                    _priceController.text,
-                                  );
-                                  showSnackBar(
-                                    context,
-                                    "Item added successfully!",
-                                  );
-                                  Navigator.of(context).pop();
-                                } catch (e) {
-                                  showSnackBar(context, "Error: $e");
-                                }
-                              },
-                              buttonText: "Save item",
-                            ),
-                          ),
+              state.isLoading
+                  ? const Center(child: CircularProgressIndicator(),)
+                  : Center(
+                      child: MyButton(
+                        onTab: () async {
+                          try {
+                            await notifier.uploadAndSaveItem(
+                              _nameController.text,
+                              _priceController.text,
+                            );
+                            showSnackBar(context, "Item added successfully!");
+                            Navigator.of(context).pop();
+                          } catch (e) {
+                            showSnackBar(context, "Error: $e");
+                          }
+                        },
+                        buttonText: "Save item",
+                      ),
+                    ),
 
               // for Discount
             ],
@@ -205,5 +204,4 @@ class AddItems extends ConsumerWidget {
     );
   }
 }
-// now after that first we have code for logic part 
-// we have use flutter_riverpod for state management
+
