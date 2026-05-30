@@ -3,10 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Admin/Screen/admin_home_screen.dart';
+import 'package:mypetshop/Views/app_main_screen.dart';
 import 'package:mypetshop/role_based_login/User/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mypetshop/Widgets/firebase_options.dart';
-import 'package:mypetshop/role_based_login/User/user_app_first_screen.dart';
+import 'package:mypetshop/Views/app_main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,10 +81,16 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+        home: AppMainScreen(),
+    );
+
     // for keep user login
-    return _userRole == "Admin"
-        ? const AdminHomeScreen()
-        : const UserAppFirstScreen();
+
+    // return _userRole == "Admin"
+    //     ? const AdminHomeScreen()
+    //     : const AppMainScreen();
   }
 }
 

@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
-  //firebase Authentication instance
+  // firebase Authentication instance
   final FirebaseAuth _auth = FirebaseAuth.instance;
   // firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // function to handle user signup
+
+  // ===== USER SIGNUP =====
   Future<String?> signup({
     required String name,
     required String email,
@@ -17,25 +16,25 @@ class AuthService {
   }) async {
     try {
       // create user in firebase authentication with email and password
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(
-            email: email.trim(),
-            password: password.trim(),
-          );
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
 
-      // save additional user data in firestore (name,role,email)
+      // save additional user data in firestore (name, role, email)
       await _firestore.collection("users").doc(userCredential.user!.uid).set({
         'name': name.trim(),
         "email": email.trim(),
         "role": role,
       });
-      return null; // success no error message
+      return null; // Success: no error message
     } catch (e) {
-      return e.toString(); // error : return the exception message
+      print("Signup Error: ${e.toString()}");
+      return e.toString(); // Return error message to show in UI
     }
   }
-  // function to handle user login
 
+  // ===== USER LOGIN =====
   Future<String?> login({
     required String email,
     required String password,
@@ -46,19 +45,26 @@ class AuthService {
         email: email.trim(),
         password: password.trim(),
       );
-      // fetching the user's role from firestore to determins access level
+      
+      // fetching the user's role from firestore to determine access level
       DocumentSnapshot userDoc = await _firestore
           .collection("users")
           .doc(userCredential.user!.uid)
           .get();
-      return userDoc['role']; // return the user role (admin/user)  
+
+      if (userDoc.exists && userDoc.data() != null) {
+        return userDoc['role']; // return 'admin' or 'user'
+      }
+      
+      return null; // User doc မရှိရင် null ပြန်မယ်
     } catch (e) {
-      return e.toString(); // error : return the exception message
+      print("Login Error: ${e.toString()}"); // Console မှာ အမှားကြည့်လို့ရအောင် ပြုလုပ်ခြင်း
+      return null; // Error တက်သွားရင် null ပြန်ပေးမှ UI ဘက်က Loading ကို ပိတ်ရမှန်း သိမှာပါ
     }
   }
 
-  // for user logOut
-  signOut() async{
-    _auth.signOut();
+  // ===== USER LOGOUT =====
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 }

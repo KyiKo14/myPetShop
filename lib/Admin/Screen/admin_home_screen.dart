@@ -61,8 +61,8 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
 
                   DropdownButton<String>(
                     value:
-                        selectedCategory, // 💡 လက်ရှိရွေးထားတဲ့ category စာသားပေါ်နေအောင် ဒါလေး ထည့်ပေးရပါမယ်
-                    hint: const Text("Filter"), // ဘာမှမရွေးရသေးခင် ပြမယ့်စာသား
+                        selectedCategory, 
+                    hint: const Text("Filter"), 
                     items: categories.map((String category) {
                       return DropdownMenuItem(
                         value: category,
@@ -86,7 +86,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                         icon: const Icon(Icons.receipt_long),
                       ),
                     ],
-                  ), // ⚠️ ဒီနေရာမှာ မူလက ကော်မာ ( , ) ကျန်ခဲ့ပါတယ်
+                  ), 
                   // signOut
                   GestureDetector(
                     onTap: () async {
@@ -150,17 +150,17 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                                 child: CachedNetworkImage(
                                   imageUrl:
                                       items['image'] ??
-                                      '', // Error မတက်အောင် fallback ထည့်ထားပါတယ်
+                                      '', 
                                   height: 60,
                                   width: 60,
                                   fit: BoxFit
-                                      .cover, // ပုံလေး ကွက်တိဖြစ်အောင်လို့ပါ
+                                      .cover, 
                                   placeholder: (context, url) =>
-                                      const CircularProgressIndicator(), // Loading ပြဖို့ပါ
+                                      const CircularProgressIndicator(), 
                                   errorWidget: (context, url, error) =>
                                       const Icon(
                                         Icons.error,
-                                      ), // ပုံဆွဲမရရင် ပြဖို့ပါ
+                                      ), 
                                 ),
                               ),
                               title: Text(
@@ -171,7 +171,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
                                 ),
-                              ), // Item နာမည်ပြဖို့ ထည့်ပေးထားပါတယ်
+                              ), 
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -196,7 +196,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
                                   ),
                                   const SizedBox(height: 5),
                                 ],
-                              ), // ဈေးနှုန်းပြဖို့ ထည့်ပေးထားပါတယ်
+                              ), 
                             ),
                           ),
                         );
@@ -224,112 +224,4 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
 
 
 
-// // import 'dart:math';
 
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:flutter/material.dart';
-// import 'package:mypetshop/Admin/Screen/add_items.dart';
-// import 'package:mypetshop/Services/auth_service.dart';
-// import 'package:mypetshop/role_based_login/User/login_screen.dart';
-// import 'package:cached_network_image/cached_network_image.dart';
-
-// final AuthService _authService = AuthService();
-
-// class AdminHomeScreen extends StatefulWidget {
-//   const AdminHomeScreen({super.key});
-
-//   @override
-//   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
-// }
-
-// class _AdminHomeScreenState extends State<AdminHomeScreen> {
-//   final CollectionReference items = FirebaseFirestore.instance.collection(
-//     'items',
-//   );
-//   String? selectedCategory;
-//   List<String> categories = [];
-//   @override
-//   Widget build(BuildContext context) {
-//     String uid = FirebaseAuth.instance.currentUser!.uid;
-//     return Scaffold(
-//       backgroundColor: Colors.blue[100],
-//       body: SafeArea(
-//         child: Padding(
-//           padding: EdgeInsets.symmetric(horizontal: 15),
-//           child: Column(
-//             children: [
-//               Row(
-//                 children: [
-//                   Text("Your Uploaded Items",style: TextStyle(
-//                     fontSize: 18,
-//                     fontWeight: FontWeight.bold,
-//                   ),
-//                  ),
-
-//                 ],
-//               ),
-//               // fetch the uploaded items from firestore
-
-//               Expanded(
-//                     child: StreamBuilder(
-//                   stream: items
-//                   .where("uploadedBy", isEqualTo: uid)
-//                   .where('category',isEqualTo: selectedCategory)
-//                   .snapshots(), 
-//                 builder: 
-//                   (context, AsyncSnapshot<QuerySnapshot>snapshot){
-//                     if(snapshot.hasError){
-//                       return const Center(child: Text("Error loading items."),
-//                       );
-                      
-//                     }
-//                     final documents = snapshot.data?.docs ?? [];
-//                     if(documents.isEmpty){
-//                       return const Center(child: Text("No items uploaded."));
-//                     }
-//                     return ListView.builder(
-//                       itemCount: documents.length,
-//                       itemBuilder: (context, index) {
-//                         final items = documents[index].data() as Map<String, dynamic>;
-//                         return Padding(padding: EdgeInsets.only(bottom: 10),
-//                         child: Material(
-//                           borderRadius: BorderRadius.circular(10),
-//                           elevation: 2,
-//                           child: ListTile(
-//                             leading: ClipRRect(
-//                               borderRadius: BorderRadius.circular(10),
-//                               child: CachedNetworkImage(
-//                                 imageUrl: items['image'],
-//                                 height: 60,
-//                                 width: 60,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       );
-//                     } ,
-//                   );
-
-//                   },
-//                 ),
-
-//             ],
-//           ),
-//         ),
-//       ), 
-//       floatingActionButton: FloatingActionButton(
-//         backgroundColor: Colors.blueAccent,
-
-//         onPressed: () async {
-//           await Navigator.of(
-//             context,
-//           ).push(MaterialPageRoute(builder: (context) => AddItems(),
-//           ),
-//           );
-//         },
-//         child: const Icon(Icons.add),
-//       ),
-//     );
-//   }
-// }
