@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mypetshop/Admin/Screen/admin_home_screen.dart';
 import 'package:mypetshop/Services/auth_service.dart';
-import 'package:mypetshop/Views/app_main_screen.dart';
+import 'package:mypetshop/Screen/user_app_main_screen.dart';
 import 'package:mypetshop/role_based_login/User/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (role == "user") {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AppMainScreen()),
+          MaterialPageRoute(builder: (_) => const UserAppMainScreen()),
         );
       } else {
         

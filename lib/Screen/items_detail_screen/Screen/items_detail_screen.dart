@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mypetshop/Model/item_model.dart';
-import 'package:mypetshop/Utils/colors.dart';
+import 'package:mypetshop/Core/Model/item_model.dart';
+import 'package:mypetshop/Core/Common/Utils/colors.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // 💡 ဒါလေး ထည့်ပေးပါ
 
 class ItemsDetailScreen extends StatefulWidget {
   final AppModel petShop;
@@ -102,12 +103,28 @@ class _ItemsDetailScreenState extends State<ItemsDetailScreen> {
                             padding: const EdgeInsets.only(top: 100, bottom: 40),
                             child: Hero(
                               tag: widget.petShop.image,
-                              child: Image.asset(
-                                widget.petShop.image,
-                                height: size.height * 0.35,
-                                width: size.width * 0.5,
-                                fit: BoxFit.contain,
-                              ),
+                              // 💡 ဓာတ်ပုံ အမျိုးအစား စစ်ဆေးသည့် Logic ပြောင်းလဲထားပါသည်
+                              child: widget.petShop.image.startsWith('http')
+                                  ? CachedNetworkImage(
+                                      imageUrl: widget.petShop.image,
+                                      height: size.height * 0.35,
+                                      width: size.width * 0.5,
+                                      fit: BoxFit.contain,
+                                      placeholder: (context, url) => const Center(
+                                        child: CircularProgressIndicator(color: Colors.deepPurple),
+                                      ),
+                                      errorWidget: (context, url, error) => const Icon(
+                                        Icons.pets,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    )
+                                  : Image.asset(
+                                      widget.petShop.image,
+                                      height: size.height * 0.35,
+                                      width: size.width * 0.5,
+                                      fit: BoxFit.contain,
+                                    ),
                             ),
                           );
                         },
@@ -152,9 +169,10 @@ class _ItemsDetailScreenState extends State<ItemsDetailScreen> {
                               color: Colors.deepPurple.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              "Puppy",
-                              style: TextStyle(
+                            child: Text(
+                              // 💡 Admin ဆီက Category ပါလာရင် ၎င်းအတိုင်းပြရန် ပြောင်းထားပါသည်
+                              widget.petShop.category.isNotEmpty ? widget.petShop.category : "Puppy",
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.deepPurple,
@@ -223,7 +241,10 @@ class _ItemsDetailScreenState extends State<ItemsDetailScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        "$myDescription1 ${widget.petShop.name} $myDescription2",
+                        // 💡 Description လုံးဝ မရှိသေးရင် တာဝန်ကျေစာသားလေး အလိုအလျောက် အစားထိုးပြပေးမယ့် Logic ပါ
+                        widget.petShop.description.isNotEmpty 
+                            ? widget.petShop.description 
+                            : "$myDescription1 ${widget.petShop.name} $myDescription2",
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.5,

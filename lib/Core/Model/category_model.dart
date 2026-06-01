@@ -37,12 +37,6 @@ List<Category> category = [
     image: "assets/category_image/bird.jpg",
     fbackgroundcolor1: const Color.fromARGB(255, 18, 216, 27),
   ),
-  
 ];
 
-List<String> filterCategory = [
-  "Filter",
-  "Ratings",
-  "Price",
-  "Brand",
-];
+// List<String> filterCategory = ["Filter", "Ratings", "Price", "Brand"];

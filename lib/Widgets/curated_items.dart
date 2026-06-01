@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mypetshop/Model/item_model.dart';
+import 'package:mypetshop/Core/Model/item_model.dart';
 
 class CuratedItems extends StatelessWidget {
   final AppModel petItem;

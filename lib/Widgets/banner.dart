@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mypetshop/Utils/colors.dart';
+import 'package:mypetshop/Core/Common/Utils/colors.dart';
 
 class MyBanner extends StatelessWidget {
-  const MyBanner({super.key});
+  final VoidCallback onShopNowPressed; 
+
+  const MyBanner({super.key, required this.onShopNowPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -15,11 +17,21 @@ class MyBanner extends StatelessWidget {
         padding: const EdgeInsets.only(left: 27),
         child: Stack(
           children: [
+
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Image.asset(
+                'assets/category_image/pet.png',
+                height: size.height * 0.16,
+                width: size.width * 0.65, 
+                fit: BoxFit.contain,
+              ),
+            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   "NEW ITEMS",
                   style: TextStyle(
                     fontSize: 20,
@@ -27,10 +39,9 @@ class MyBanner extends StatelessWidget {
                     letterSpacing: -2,
                   ),
                 ),
-
                 Row(
                   children: [
-                    Text(
+                    const Text(
                       "30",
                       style: TextStyle(
                         height: 0,
@@ -39,7 +50,7 @@ class MyBanner extends StatelessWidget {
                         letterSpacing: -3,
                       ),
                     ),
-                    Column(
+                    const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -59,26 +70,19 @@ class MyBanner extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 30),
-                // for banner
-                // MyBanner(),
+                const SizedBox(height: 30),
+                
+                // SHOP NOW Button
                 MaterialButton(
-                  onPressed: () {},
+                  onPressed: onShopNowPressed, 
                   color: Colors.black,
-                  child: Text(
+                  elevation: 2, 
+                  child: const Text(
                     'SHOP NOW',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Image.asset(
-                'assets/category_image/pet.png',
-                height: size.height * 0.16,
-                width: size.width * 1,
-              ),
             ),
           ],
         ),
