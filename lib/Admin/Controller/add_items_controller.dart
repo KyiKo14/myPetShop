@@ -53,9 +53,13 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-  void removeSize(String size) {
+   void removeSize(String size) {
     state = state.copyWith(sizes: state.sizes.where((s) => s != size).toList());
   }
+   // for color
+  // void addColor(String color) {
+  //   state = state.copyWith(colors: [...state.colors, color]);
+  // }
 
   // Colors 
   void addColor(String color) {
