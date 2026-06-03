@@ -1,125 +1,144 @@
+// lib/Widgets/shop_items.dart  (REPLACE)
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Core/Model/item_model.dart';
-import 'package:cached_network_image/cached_network_image.dart'; 
+import 'package:mypetshop/Core/Provider/favourite_provider.dart';
 
-class ShopItems extends StatelessWidget {
+class ShopItems extends ConsumerWidget {
   final AppModel petItem;
   final Size size;
 
   const ShopItems({super.key, required this.petItem, required this.size});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favourites = ref.watch(favouriteProvider);
+    final isFav = favourites.any((p) => p.image == petItem.image);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, 
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==================== IMAGE CONTAINER ====================
-        Container(
-          height: size.height * 0.4,
-          width: size.width * 0.3,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            color: Colors.grey[200], 
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(9),
-            child: Stack(
-              children: [
-                
-                Positioned.fill(
+        Stack(
+          children: [
+            Hero(
+              tag: petItem.image,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                height: size.height * 0.25,
+                width: size.width * 0.42,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
                   child: petItem.image.startsWith('http')
                       ? CachedNetworkImage(
                           imageUrl: petItem.image,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepPurple),
-                          ),
-                          errorWidget: (context, url, error) => const Icon(Icons.pets, color: Colors.grey),
+                          placeholder: (c, u) => Container(color: Colors.grey.shade100),
+                          errorWidget: (c, u, e) =>
+                              Container(color: Colors.grey.shade100,
+                                  child: const Icon(Icons.pets, color: Colors.grey)),
                         )
-                      : Image.asset(
-                          petItem.image,
-                          fit: BoxFit.cover,
-                        ),
+                      : Image.asset(petItem.image, fit: BoxFit.cover),
                 ),
-                
-                // Favorite Icon
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.black12,
-                      child: Icon(
-                        Icons.favorite_border_outlined,
-                        color: Colors.white,
-                      ),
-                    ),
+              ),
+            ),
+            // ── FAVOURITE BUTTON ──
+            Positioned(
+              top: 8, right: 8,
+              child: GestureDetector(
+                onTap: () {
+                  ref.read(favouriteProvider.notifier).toggleFavourite(petItem);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: isFav ? Colors.red.withOpacity(0.15) : Colors.black.withOpacity(0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isFav ? Icons.favorite : Icons.favorite_border,
+                    color: isFav ? Colors.redAccent : Colors.white,
+                    size: 20,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        
-        // ==================== RATING & CATEGORY ====================
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 230, 220, 220),
-                borderRadius: BorderRadius.circular(4),
               ),
-              child: Text(
-                petItem.category.isNotEmpty ? petItem.category : "Puppy", 
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 7),
-            const Icon(Icons.star, color: Colors.amber, size: 16),
-            Text(petItem.rating.toString()),
-            Text(
-              "(${petItem.review})",
-              style: const TextStyle(color: Color.fromARGB(255, 65, 59, 59), fontSize: 12),
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        
-        // ==================== ITEM NAME ====================
+        const SizedBox(height: 8),
+        // Category + Rating row
         SizedBox(
-          width: size.width * 0.3, 
+          width: size.width * 0.42,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  petItem.category.isNotEmpty ? petItem.category : 'Pet',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.deepPurple,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.star, color: Colors.amber, size: 14),
+              const SizedBox(width: 2),
+              Text(petItem.rating.toString(),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              Text('(${petItem.review})',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: size.width * 0.42,
           child: Text(
             petItem.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              height: 1.2,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, height: 1.4),
           ),
         ),
-        
-        // ==================== PRICE ====================
+        const SizedBox(height: 2),
         Row(
           children: [
             Text(
-              "\$${petItem.price.toString()}.00",
+              '\$${petItem.price.toString()}.00',
               style: const TextStyle(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w700,
                 fontSize: 16,
-                height: 1.5,
-                color: Colors.redAccent, 
+                color: Colors.deepPurple,
+                height: 1.4,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            if (petItem.ischeck)
+              Text(
+                '\$${petItem.price + 5000}.00',
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  decoration: TextDecoration.lineThrough,
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
       ],

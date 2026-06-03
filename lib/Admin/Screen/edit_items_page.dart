@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // 💡 kIsWeb သုံးရန်အတွက် Import ထည့်ထားပါတယ်
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Admin/Controller/add_items_controller.dart';
@@ -26,8 +27,15 @@ class EditItemsPage extends ConsumerWidget {
     final state = ref.watch(addItemProvider);
     final notifier = ref.read(addItemProvider.notifier);
 
+    // 💡 အရေးကြီးချက်: စာမျက်နှာပွင့်လာတာနဲ့ မူရင်း Category, Sizes, Colors တွေ State ထဲဝင်သွားအောင် တစ်ကြိမ်ပဲ လုပ်ဆောင်စေခြင်း
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (state.imagePath == null) {
+        notifier.populateItemDataForEdit(itemData);
+      }
+    });
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Edit Item")),
+      appBar: AppBar(title: const Text("Edit Item"), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: SingleChildScrollView(
@@ -35,17 +43,24 @@ class EditItemsPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              // Image Container
+              
+              // ==================== 📸 IMAGE CONTAINER (FIXED) ====================
               Center(
                 child: Container(
                   height: 150, width: 150,
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
                   child: state.imagePath != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: state.imagePath!.startsWith('http')
-                              ? Image.network(state.imagePath!, fit: BoxFit.cover)
-                              : Image.file(File(state.imagePath!), fit: BoxFit.cover), 
+                      ? InkWell(
+                          onTap: notifier.pickImage, // ပုံရှိနေရင်လည်း ထပ်နှိပ်ပြီး ပြောင်းလို့ရအောင် လုပ်ထားပေးပါတယ်
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            // 💡 ပြင်ဆင်ချက်အပိုင်း: Web လား ဖုန်းလား သေချာခွဲခြားပြီးမှ ပုံဖော်ပြပါတယ်
+                            child: kIsWeb
+                                ? Image.network(state.imagePath!, fit: BoxFit.cover, height: 150, width: 150)
+                                : state.imagePath!.startsWith('http')
+                                    ? Image.network(state.imagePath!, fit: BoxFit.cover, height: 150, width: 150)
+                                    : Image.file(File(state.imagePath!), fit: BoxFit.cover, height: 150, width: 150),
+                          ),
                         )
                       : GestureDetector(
                           onTap: notifier.pickImage,
@@ -54,6 +69,8 @@ class EditItemsPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 15),
+              
+              // ==================== 📝 FORMS ====================
               TextField(controller: _nameController, decoration: const InputDecoration(labelText: "Name", border: OutlineInputBorder())),
               const SizedBox(height: 10),
               TextField(controller: _priceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Price", border: OutlineInputBorder())),
@@ -75,10 +92,13 @@ class EditItemsPage extends ConsumerWidget {
                 controller: _sizeController,
                 decoration: const InputDecoration(labelText: "Stock Qty", border: OutlineInputBorder()),
                 onSubmitted: (value) {
-                  notifier.addSize(value);
-                  _sizeController.clear();
+                  if (value.trim().isNotEmpty) {
+                    notifier.addSize(value.trim());
+                    _sizeController.clear();
+                  }
                 },
               ),
+              const SizedBox(height: 5),
               Wrap(
                 spacing: 8,
                 children: state.sizes.map((size) => Chip(onDeleted: () => notifier.removeSize(size), label: Text(size))).toList(),
@@ -90,10 +110,13 @@ class EditItemsPage extends ConsumerWidget {
                 controller: _colorController,
                 decoration: const InputDecoration(labelText: "Colors", border: OutlineInputBorder()),
                 onSubmitted: (value) {
-                  notifier.addColor(value);
-                  _colorController.clear();
+                  if (value.trim().isNotEmpty) {
+                    notifier.addColor(value.trim());
+                    _colorController.clear();
+                  }
                 },
               ),
+              const SizedBox(height: 5),
               Wrap(
                 spacing: 8,
                 children: state.colors.map((color) => Chip(onDeleted: () => notifier.removeColor(color), label: Text(color))).toList(),
@@ -114,7 +137,7 @@ class EditItemsPage extends ConsumerWidget {
                 ),
               const SizedBox(height: 30),
 
-              // UPDATE BUTTON
+              // ==================== 💾 UPDATE BUTTON ====================
               state.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : Center(

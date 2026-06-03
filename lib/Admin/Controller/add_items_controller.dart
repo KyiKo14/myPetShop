@@ -19,10 +19,9 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
   final CollectionReference items = FirebaseFirestore.instance.collection('items');
   final CollectionReference categoriesCollection = FirebaseFirestore.instance.collection('Category');
   
-  // Web (Chrome)  Bytes
+  // for Web (Chrome) 
   Uint8List? _webImageBytes;
 
-  
   void pickImage() async {
     try {
       final pickedFile = await ImagePicker().pickImage(
@@ -53,13 +52,9 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-   void removeSize(String size) {
+  void removeSize(String size) {
     state = state.copyWith(sizes: state.sizes.where((s) => s != size).toList());
   }
-   // for color
-  // void addColor(String color) {
-  //   state = state.copyWith(colors: [...state.colors, color]);
-  // }
 
   // Colors 
   void addColor(String color) {
@@ -85,7 +80,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     state = state.copyWith(isLoading: isLoading);
   }
 
-  // Firebase Firestore ထဲက Category List ယူခြင်း
+
   Future<void> fetchCategory() async {
     try {
       QuerySnapshot snapshot = await categoriesCollection.get();
@@ -98,7 +93,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-  //  NEW ITEM 
+  // ==================== 📤 NEW ITEM UPLOAD ====================
   Future<void> uploadAndSaveItem(String name, String price) async {
     if (name.trim().isEmpty || price.trim().isEmpty) {
       throw Exception("Please enter Name and Price.");
@@ -115,8 +110,11 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     try {
       String? imageUrl;
 
-      if (kIsWeb && _webImageBytes != null) {
-        imageUrl = await CloudinaryService.uploadImage(File(state.imagePath!), webBytes: _webImageBytes);
+
+      if (kIsWeb) {
+        if (_webImageBytes != null) {
+          imageUrl = await CloudinaryService.uploadImage(_webImageBytes!);
+        }
       } else {
         imageUrl = await CloudinaryService.uploadImage(File(state.imagePath!));
       }
@@ -152,7 +150,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-  // ITEM (UPDATE) 
+  // ==================== 📝 ITEM UPDATE ====================
   Future<void> updateItem(String docId, String name, String price) async {
     if (name.trim().isEmpty || price.trim().isEmpty) {
       throw Exception("Name and Price cannot be empty.");
@@ -167,8 +165,11 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
       String? imageUrl = state.imagePath;
 
       if (imageUrl != null && !imageUrl.startsWith('http')) {
-        if (kIsWeb && _webImageBytes != null) {
-          imageUrl = await CloudinaryService.uploadImage(File(state.imagePath!), webBytes: _webImageBytes);
+
+        if (kIsWeb) {
+          if (_webImageBytes != null) {
+            imageUrl = await CloudinaryService.uploadImage(_webImageBytes!);
+          }
         } else {
           imageUrl = await CloudinaryService.uploadImage(File(state.imagePath!));
         }
@@ -178,7 +179,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
         }
       }
 
-      // Firestore  docId  Update 
+      // Firestore update
       await items.doc(docId).update({
         'name': name.trim(),
         'price': int.tryParse(price.trim()) ?? 0,
@@ -202,7 +203,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-  //  ITEM (DELETE) 
+  // ITEM (DELETE) 
   Future<void> deleteItem(String docId) async {
     try {
       await items.doc(docId).delete();
@@ -212,7 +213,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     }
   }
 
-  //  DATA SEND 
+
   void populateItemDataForEdit(Map<String, dynamic> itemData) {
     state = state.copyWith(
       imagePath: itemData['image'],
@@ -224,7 +225,7 @@ class AddItemNotifier extends StateNotifier<AddItemState> {
     );
   }
 
-  // Helper function to clear form data
+
   void _resetFormState() {
     final currentCategories = state.categories;
     _webImageBytes = null;

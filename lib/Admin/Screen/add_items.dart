@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
-// import 'dart:io';
-// import 'package:flutter/foundation.dart';
+import 'dart:io'; // 💡 File သုံးရန်အတွက် ပြန်ဖွင့်ပေးထားပါတယ်
+import 'package:flutter/foundation.dart'; // 💡 kIsWeb သုံးရန်အတွက် ပြန်ဖွင့်ပေးထားပါတယ်
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mypetshop/Admin/Controller/add_items_controller.dart';
@@ -35,7 +35,8 @@ class AddItems extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              //  IMAGE PICKER CONTAINER 
+              
+              // ==================== 📸 IMAGE PICKER CONTAINER ====================
               Center(
                 child: Container(
                   height: 150,
@@ -46,20 +47,25 @@ class AddItems extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-        
                   child: state.isLoading && state.imagePath == null
                       ? const CircularProgressIndicator(color: Colors.deepPurple)
                       : state.imagePath != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(11),
-                              child: Image.network(
-                                state.imagePath!,
-                                fit: BoxFit.cover,
-                                height: 150,
-                                width: 150,
-                                // errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 40),
-                                
-                              ),
+                              // 💡 ပြင်ဆင်ချက်အပိုင်း- Web နှင့် Mobile ပုံပြသမှုကို လုံခြုံစွာ ခွဲခြားလိုက်ပါတယ်
+                              child: kIsWeb
+                                  ? Image.network(
+                                      state.imagePath!,
+                                      fit: BoxFit.cover,
+                                      height: 150,
+                                      width: 150,
+                                    )
+                                  : Image.file(
+                                      File(state.imagePath!),
+                                      fit: BoxFit.cover,
+                                      height: 150,
+                                      width: 150,
+                                    ),
                             )
                           : InkWell(
                               onTap: notifier.pickImage,
@@ -74,7 +80,7 @@ class AddItems extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               
-              //  TEXTFIELDS & FORMS 
+              // ==================== 📝 TEXTFIELDS & FORMS ====================
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -108,7 +114,7 @@ class AddItems extends ConsumerWidget {
                   );
                 }).toList(),
               ),
-              // for size
+              
               const SizedBox(height: 10),
               TextField(
                 controller: _sizeController,
@@ -141,7 +147,6 @@ class AddItems extends ConsumerWidget {
               // Colors
               TextField(
                 controller: _colorController,
-
                 decoration: const InputDecoration(
                   labelText: "Colors",
                   border: OutlineInputBorder(),
@@ -163,12 +168,7 @@ class AddItems extends ConsumerWidget {
                     )
                     .toList(),
               ),
-              // Wrap(spacing: 8,children: state.sizes.map(
-              //   (size)=> Chip(
-              //     label: Text(size),
-              //     ),
-              //   ).toList(),
-              // ),
+              
               Row(
                 children: [
                   Checkbox(
@@ -199,9 +199,10 @@ class AddItems extends ConsumerWidget {
                   ],
                 ),
               const SizedBox(height: 20),
-              const SizedBox(height: 10),
+              
+              // ==================== 💾 SAVE BUTTON ====================
               state.isLoading
-                  ? const Center(child: CircularProgressIndicator(),)
+                  ? const Center(child: CircularProgressIndicator())
                   : Center(
                       child: MyButton(
                         onTab: () async {
@@ -219,8 +220,7 @@ class AddItems extends ConsumerWidget {
                         buttonText: "Save item",
                       ),
                     ),
-
-              // for Discount
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -228,4 +228,3 @@ class AddItems extends ConsumerWidget {
     );
   }
 }
-

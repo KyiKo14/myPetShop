@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
-void showSnackBar(BuildContext context,String message){
+void showSnackBar(BuildContext context, String message, {SnackBarAction? action}) {
   ScaffoldMessenger.of(context)
-  ..hideCurrentSnackBar()
-  ..showSnackBar(
-    SnackBar(content: Text(message),
-    duration: Duration(seconds: 1),
-    ),
-  );
-
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.deepPurple, 
+        duration: const Duration(seconds: 2), 
+      ),
+    );
 }
