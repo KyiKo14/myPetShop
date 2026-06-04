@@ -8,7 +8,7 @@ import 'package:mypetshop/Screen/user_app_main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mypetshop/Widgets/firebase_options.dart';
 
-
+// 💡 ၁။ စာမျက်နှာတစ်ခုခု ပြောင်းလဲတိုင်း (သို့မဟုတ်) Back ထွက်တိုင်း Snackbar များကို ဇွတ်အတင်း ရှင်းလင်းမည့် စနစ်
 class SnackbarCleanerObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
     return ProviderScope(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        // 💡 ၂။ ဤနေရာတွင် စနစ်သစ် Navigator Observer ကို ကွက်တိ ချိတ်ဆက်ပေးထားပါသည်
         navigatorObservers: [SnackbarCleanerObserver()], 
         home: const AuthStateHandler(),
       ),
