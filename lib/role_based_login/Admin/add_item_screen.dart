@@ -147,7 +147,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             // ==================== 📂 DROPDOWN ====================
             DropdownButtonFormField<String>(
               value: _selectedCategory,
-              items: ["Dog", "Cat", "Rabbit", "Bird", "Fish"]
+              items: ["Dogs", "Cats", "Rabbit", "Bird", "Fish"]
                   .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                   .toList(),
               onChanged: (val) => setState(() => _selectedCategory = val!),

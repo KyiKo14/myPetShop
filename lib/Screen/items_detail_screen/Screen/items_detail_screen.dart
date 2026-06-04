@@ -1,4 +1,4 @@
-// lib/Screen/items_detail_screen/Screen/items_detail_screen.dart  (REPLACE)
+// lib/Screen/items_detail_screen/Screen/items_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -24,7 +24,6 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
 
   bool get _isGuest => FirebaseAuth.instance.currentUser == null;
 
-  // Only cart/purchase actions require login — favourites are free for all
   void _requireLogin(VoidCallback action) {
     if (_isGuest) {
       _showLoginSheet();
@@ -93,22 +92,35 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
     );
   }
 
+  // 💡 ပြုပြင်ပြီးသား ခြင်းတောင်းထဲထည့်သည့် Function
   void _addToCart() => _requireLogin(() {
+
         ref.read(cartProvider.notifier).addToCart(widget.petShop);
+        
+
+        ScaffoldMessenger.of(context).clearSnackBars();
+
+
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Row(children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text('${widget.petShop.name} added to cart'),
+            const Icon(Icons.check_circle, color: Colors.white, size: 20), 
+            const SizedBox(width: 10),
+            Text('${widget.petShop.name} Added to Cart!'),
           ]),
           backgroundColor: Colors.deepPurple,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3), 
           action: SnackBarAction(
-            label: 'View Cart', textColor: Colors.white,
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const CartScreen())),
+            label: 'View Cart', 
+            textColor: Colors.amber, 
+            onPressed: () {
+
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => const CartScreen())
+              );
+            },
           ),
         ));
       });
@@ -124,7 +136,6 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
     final size = MediaQuery.of(context).size;
     final cartCount = ref.watch(cartProvider).itemCount;
 
-    // ── Watch favourite state live ──
     final favourites = ref.watch(favouriteProvider);
     final isFav = favourites.any((p) => p.image == widget.petShop.image);
 
@@ -252,7 +263,6 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        // Category badge
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
@@ -279,7 +289,6 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
                                 color: Colors.grey.shade500, fontSize: 13)),
                         const Spacer(),
 
-                        // ── FAVOURITE BUTTON — works for everyone ──
                         GestureDetector(
                           onTap: () => ref
                               .read(favouriteProvider.notifier)
@@ -345,7 +354,6 @@ class _ItemsDetailScreenState extends ConsumerState<ItemsDetailScreen> {
                             color: Colors.grey.shade600),
                       ),
 
-                      // Guest banner (only for cart/purchase, not favourites)
                       if (_isGuest) ...[
                         const SizedBox(height: 24),
                         Container(

@@ -12,12 +12,12 @@ class OrderScreen extends StatelessWidget {
       case 'pending':
         return Colors.orange;
       case 'confirmed':
-      case 'approved': // 💡 Approved လို့ သုံးရင်လည်း အပြာရောင်ပြပေးရန် ထည့်သွင်းထားခြင်း
+      case 'approved': 
         return Colors.blue;
       case 'shipped':
         return Colors.deepPurple;
       case 'delivered':
-      case 'success': // 💡 Success ဖြစ်သွားပါက အစိမ်းရောင်ပြရန်
+      case 'success': 
         return Colors.green;
       case 'cancelled':
       case 'rejected':
@@ -49,7 +49,7 @@ class OrderScreen extends StatelessWidget {
       body: user == null
           ? const Center(child: Text('Please login to view orders'))
           : StreamBuilder<QuerySnapshot>(
-              // 💡 Index Error မတက်စေရန် orderBy ကို ဖယ်ထုတ်ပြီး ကွန်ပျူတာဘက်မှ စီခိုင်းမည်
+
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('userId', isEqualTo: user.uid)
@@ -63,7 +63,7 @@ class OrderScreen extends StatelessWidget {
                   return Center(child: Text('Something went wrong: ${snapshot.error}'));
                 }
 
-                // 💡 Firestore ထဲက ရလာတဲ့ Docs များကို ဖုန်း/Browser ဘက်မှာတင် ရက်စွဲအလိုက် အသစ်ဆုံးကို ထိပ်ဆုံးကစီခြင်း
+
                 final orders = snapshot.data?.docs ?? [];
                 final sortedOrders = List<QueryDocumentSnapshot>.from(orders);
                 sortedOrders.sort((a, b) {
@@ -71,7 +71,7 @@ class OrderScreen extends StatelessWidget {
                   final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
                   if (aTime == null) return 1;
                   if (bTime == null) return -1;
-                  return bTime.compareTo(aTime); // descending: true ပုံစံ
+                  return bTime.compareTo(aTime); 
                 });
 
                 if (sortedOrders.isEmpty) {
@@ -101,7 +101,7 @@ class OrderScreen extends StatelessWidget {
                     final createdAt = data['createdAt'] as Timestamp?;
                     final dateStr = createdAt != null
                         ? DateFormat('dd MMM yyyy, hh:mm a').format(createdAt.toDate())
-                        : 'Just now'; // Firebase ဆာဗာတွင် သိမ်းဆဲအချိန်၌ null ဖြစ်နေပါက ပြရန်
+                        : 'Just now'; 
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 14),

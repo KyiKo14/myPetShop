@@ -1,5 +1,7 @@
+// lib/role_based_login/User/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:mypetshop/Admin/Screen/admin_home_screen.dart';
+// 💡 Fix: Import လမ်းကြောင်းကို Role-based login folder အောက်က Dashboard အသစ်ဆီသို့ ပြောင်းလဲလိုက်ပါသည်
+import 'package:mypetshop/role_based_login/Admin/admin_home_screen.dart'; 
 import 'package:mypetshop/Services/auth_service.dart';
 import 'package:mypetshop/Screen/user_app_main_screen.dart';
 import 'package:mypetshop/role_based_login/User/signup_screen.dart';
@@ -19,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   void login() async {
-    
     if (emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
       String role = result.toLowerCase().trim();
 
       if (role == "admin") {
+        // 👑 လမ်းကြောင်းအမှန်အတိုင်း Dashboard အသစ်စက်စက် (Customer Orders ပါသောစာမျက်နှာ) သို့ သွားမည်
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
@@ -60,13 +62,11 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (_) => const UserAppMainScreen()),
         );
       } else {
-        
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Login Failed: $result")));
       }
     } else {
-      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("လော့အင်ဝင်ရန် အချက်အလက် မှားယွင်းနေပါသည်။"),
@@ -100,7 +100,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 200,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    
                     return const Icon(
                       Icons.pets,
                       size: 100,

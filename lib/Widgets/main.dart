@@ -1,13 +1,34 @@
-// lib/Widgets/main.dart
+// lib/main.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mypetshop/role_based_login/Admin/admin_home_screen.dart'; 
+import 'package:mypetshop/role_based_login/Admin/admin_home_screen.dart';
 import 'package:mypetshop/Screen/user_app_main_screen.dart';
-import 'package:mypetshop/role_based_login/User/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mypetshop/Widgets/firebase_options.dart';
+
+
+class SnackbarCleanerObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _clean();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _clean();
+  }
+
+  void _clean() {
+    final context = navigator?.context;
+    if (context != null) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    }
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,10 +41,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ProviderScope(
+    return ProviderScope(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: AuthStateHandler(),
+        navigatorObservers: [SnackbarCleanerObserver()], 
+        home: const AuthStateHandler(),
       ),
     );
   }
@@ -39,7 +61,7 @@ class AuthStateHandler extends StatefulWidget {
 class _AuthStateHandlerState extends State<AuthStateHandler> {
   User? _currentUser;
   String? _userRole;
-  bool _authChecked = false; 
+  bool _authChecked = false;
 
   @override
   void initState() {
@@ -62,17 +84,30 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
 
       setState(() => _currentUser = user);
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .get();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      setState(() {
-        _userRole = userDoc.exists ? userDoc['role'] : 'user';
-        _authChecked = true;
-      });
+        final role = userDoc.exists
+            ? (userDoc['role'] ?? 'user').toString().trim()
+            : 'user';
+
+        setState(() {
+          _userRole = role;
+          _authChecked = true;
+        });
+      } catch (e) {
+        debugPrint("Role fetch error: $e");
+        if (!mounted) return;
+        setState(() {
+          _userRole = 'user';
+          _authChecked = true;
+        });
+      }
     });
   }
 
@@ -91,7 +126,17 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
       return const UserAppMainScreen(isGuest: true);
     }
 
-    if (_userRole?.toLowerCase() == 'admin') {
+    if (_userRole == null) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.deepPurple),
+        ),
+      );
+    }
+
+    final role = _userRole!.toLowerCase().trim();
+    if (role == 'admin') {
       return const AdminHomeScreen();
     }
 
