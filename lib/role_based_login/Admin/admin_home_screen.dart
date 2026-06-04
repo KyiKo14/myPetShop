@@ -1,13 +1,106 @@
 // lib/role_based_login/Admin/admin_home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 💡 Realtime Stream စောင့်ကြည့်ရန် ထည့်သွင်းထားသည်
 import 'package:mypetshop/Services/auth_service.dart';
 import 'package:mypetshop/Screen/all_items_screen.dart';
 import 'package:mypetshop/role_based_login/Admin/add_item_screen.dart';
 import 'package:mypetshop/role_based_login/Admin/admin_orders_screen.dart';
 import 'package:mypetshop/role_based_login/User/login_screen.dart';
 
-class AdminHomeScreen extends StatelessWidget {
-  const AdminHomeScreen({super.key}); // ← const constructor (removed unused _authService)
+class AdminHomeScreen extends StatefulWidget {
+  const AdminHomeScreen({super.key});
+
+  @override
+  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+}
+
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  // 💡 Admin စာမျက်နှာ စဖွင့်သည့် အချိန်ကို မှတ်ထားရန် (ယခင်ကတည်းက ရှိပြီးသား အော်ဒါဟောင်းများကို Alert ထပ်မပြစေရန်)
+  final DateTime _adminPageOpenTime = DateTime.now();
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startOrderRealtimeListener();
+  }
+
+  // 🚨 အော်ဒါအသစ်များ ဝင်လာပါက Realtime သိရှိနိုင်ရန် စောင့်ကြည့်မည့် စနစ်
+  void _startOrderRealtimeListener() {
+    if (_isListening) return;
+    _isListening = true;
+
+    FirebaseFirestore.instance
+        .collection('orders')
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(_adminPageOpenTime)) // အော်ဒါအသစ်များကိုပဲ စစ်မည်
+        .snapshots()
+        .listen((snapshot) {
+          
+      for (var change in snapshot.docChanges) {
+        // Database ထဲသို့ ဒေတာအသစ် လုံးဝအသစ်စက်စက် တိုးလာသည့် အခြေအနေဖြစ်ပါက
+        if (change.type == DocumentChangeType.added) {
+          final orderData = change.doc.data() as Map<String, dynamic>?;
+          if (orderData == null) continue;
+
+          final String customerName = orderData['customerName'] ?? 'Guest';
+          final double totalAmount = (orderData['totalAmount'] ?? 0.0).toDouble();
+
+          // 🎯 ဖန်သားပြင်ပေါ်သို့ Alert Dialog ဇွတ်အတင်း ပေါ့ပ်အပ် ထွက်ပြခြင်း
+          _triggerOrderAlert(customerName, totalAmount);
+        }
+      }
+    });
+  }
+
+  // 🔔 မျက်နှာပြင်ပေါ်တွင် Noti Box တက်ပြမည့် Function
+  void _triggerOrderAlert(String customerName, double amount) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // အပြင်ဘက်ကို နှိပ်လိုက်ရုံဖြင့် Dialog ပိတ်မသွားစေရန် ပိတ်ထားခြင်း
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.notifications_active_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Text('🚨 New Order Received!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Customer "$customerName" has just placed a new order.', style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 8),
+            Text('Total Amount: \$$amount', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple, fontSize: 15)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Dismiss', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(context); // Dialog အရင်ပိတ်မည်
+              // 🎯 အော်ဒါအသေးစိတ် စစ်ဆေးရန် စာမျက်နှာသို့ တိုက်ရိုက် လမ်းကြောင်းရွှေ့မည်
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminOrdersScreen()),
+              );
+            },
+            child: const Text('View Orders', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +114,7 @@ class AdminHomeScreen extends StatelessWidget {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         elevation: 2,
-        automaticallyImplyLeading: false, // ← no back arrow on admin dashboard
+        automaticallyImplyLeading: false, 
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -72,8 +165,7 @@ class AdminHomeScreen extends StatelessWidget {
                     subtitle: "Check & Approve Orders",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminOrdersScreen()),
+                      MaterialPageRoute(builder: (_) => const AdminOrdersScreen()),
                     ),
                   ),
                   _adminMenuCard(
@@ -84,8 +176,7 @@ class AdminHomeScreen extends StatelessWidget {
                     subtitle: "Upload New Products",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const AddItemScreen()),
+                      MaterialPageRoute(builder: (_) => const AddItemScreen()),
                     ),
                   ),
                   _adminMenuCard(
@@ -96,8 +187,7 @@ class AdminHomeScreen extends StatelessWidget {
                     subtitle: "Edit or Delete Items",
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const AllItemsScreen()),
+                      MaterialPageRoute(builder: (_) => const AllItemsScreen()),
                     ),
                   ),
                 ],

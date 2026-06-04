@@ -1,7 +1,5 @@
 // lib/role_based_login/Admin/admin_orders_screen.dart
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -22,39 +20,73 @@ class AdminOrdersScreen extends StatelessWidget {
     }
   }
 
-  // 💡 Status ပြောင်းလဲပေးမည့် Function
   Future<void> _updateStatus(BuildContext context, String orderId, String newStatus) async {
     try {
       await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
         'status': newStatus,
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order updated to $newStatus successfully!'), backgroundColor: Colors.green),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order updated to $newStatus successfully!'), backgroundColor: Colors.green),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
-  // 💡 ပြေစာပုံကြီး ချဲ့ကြည့်ရန် Dialog Box
-  void _showReceiptDialog(BuildContext context, String path) {
+  void _showReceiptDialog(BuildContext context, String urlPath) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AppBar(
-              title: const Text('Transfer Receipt', style: TextStyle(fontSize: 16)),
+              title: const Text('Transfer Receipt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               backgroundColor: Colors.white,
               elevation: 0,
-              leading: IconButton(icon: const Icon(Icons.close, color: Colors.black), onPressed: () => Navigator.pop(context)),
+              foregroundColor: Colors.black,
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black), 
+                  onPressed: () => Navigator.pop(context)
+                )
+              ],
             ),
-            Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
-              child: kIsWeb ? Image.network(path, fit: BoxFit.contain) : Image.file(File(path), fit: BoxFit.contain),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    urlPath, 
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(30.0),
+                          child: CircularProgressIndicator(color: Colors.deepPurple),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text("❌ Failed to load receipt image from Cloudinary."),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -69,32 +101,29 @@ class AdminOrdersScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('Customer Orders', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // 💡 ဆိုင်ရှိ အော်ဒါအားလုံးကို ဆွဲထုတ်ခြင်း
-        stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+        // 💡 🎯 ပြင်ဆင်ချက်- Database ထဲကနေ ဆွဲထုတ်ကတည်းက 'createdAt' အလိုက် အသစ်ဆုံးကို ထိပ်ဆုံးကနေ ငြိမ်ငြိမ်သက်သက် တန်းစီထွက်လာအောင် Query ပြောင်းလဲလိုက်ခြင်း
+        stream: FirebaseFirestore.instance
+            .collection('orders')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
           }
 
-          final docs = snapshot.data?.docs ?? [];
-          
-          // ရက်စွဲအလိုက် အသစ်ဆုံးကို ထိပ်ဆုံးပို့ရန် Sorting စီခြင်း
-          final sortedDocs = List<QueryDocumentSnapshot>.from(docs);
-          sortedDocs.sort((a, b) {
-            final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-            final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-            if (aTime == null) return 1;
-            if (bTime == null) return -1;
-            return bTime.compareTo(aTime);
-          });
-
-          if (sortedDocs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No orders received yet.', style: TextStyle(color: Colors.grey)));
           }
+
+          final sortedDocs = snapshot.data!.docs; // တုန်ခါမှုမရှိတော့ဘဲ တိုက်ရိုက် သုံးနိုင်ပြီဖြစ်သည်
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -144,7 +173,6 @@ class AdminOrdersScreen extends StatelessWidget {
                   ),
                   children: [
                     const Divider(),
-                    // --- ဝယ်ယူထားသည့် ပစ္စည်းများစာရင်း ---
                     ...items.map((item) => Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Row(
@@ -156,23 +184,27 @@ class AdminOrdersScreen extends StatelessWidget {
                       ),
                     )),
                     const Divider(),
-                    // --- ပို့ဆောင်ရမည့်လိပ်စာနှင့် ဖုန်း ---
                     _infoRow(Icons.phone, 'Phone: ${data['phone'] ?? ''}'),
                     _infoRow(Icons.location_on_outlined, 'Address: ${data['address'] ?? ''}, ${data['city'] ?? ''}'),
                     _infoRow(Icons.payment, 'Payment: $paymentMethod'),
                     
-                    // --- ငွေလွှဲပြေစာပုံ ရှိပါက ပြရန်ခလုတ် ---
                     if (receiptUrl.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      OutlinedButton.icon(
-                        onPressed: () => _showReceiptDialog(context, receiptUrl),
-                        icon: const Icon(Icons.image_search_rounded, size: 18),
-                        label: const Text('View Transfer Receipt', style: TextStyle(fontSize: 13)),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.deepPurple, side: const BorderSide(color: Colors.deepPurple)),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showReceiptDialog(context, receiptUrl),
+                          icon: const Icon(Icons.image_search_rounded, size: 18),
+                          label: const Text('View Transfer Receipt', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.deepPurple, 
+                            side: const BorderSide(color: Colors.deepPurple, width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
                       ),
                     ],
                     const Divider(height: 24),
-                    // --- Admin Action Buttons (အခြေအနေ ပြောင်းလဲရန် ခလုတ်များ) ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -226,3 +258,4 @@ class AdminOrdersScreen extends StatelessWidget {
     ),
   );
 }
+

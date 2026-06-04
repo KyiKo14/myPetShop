@@ -1,13 +1,14 @@
 // lib/Screen/checkout_screen.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb; // 💡 Uint8List ပေါင်းထည့်ထားသည်
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart'; // 💡 ဓာတ်ပုံရွေးရန် လိုအပ်သော package
+import 'package:image_picker/image_picker.dart'; 
 import 'package:mypetshop/Core/Provider/cart_provider.dart';
 import 'package:mypetshop/Screen/order_success_screen.dart';
+import 'package:mypetshop/Services/cloudinary_service.dart'; // 💡 သင့် Cloudinary Service ကို Import ချိတ်ဆက်လိုက်သည်
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -26,9 +27,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isPlacingOrder = false;
 
   XFile? _receiptImage;
+  Uint8List? _webImageBytes; // 💡 Flutter Web အတွက် ပုံရွေးချယ်ပြီး Byte Data သိမ်းဆည်းရန်
   final ImagePicker _picker = ImagePicker();
 
- 
   final Map<String, String> _paymentAccounts = {
     'KBZPay': '09-791409559 (U Kyi Zin Ko - KBZPay)',
     'WavePay': '09-791409559 (U Kyi Zin Ko - WavePay)',
@@ -47,7 +48,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     super.dispose();
   }
 
-  // 💡 ပြေစာဓာတ်ပုံ ရွေးချယ်ပေးမည့် Function
+  // 💡 ပြေစာဓာတ်ပုံ ရွေးချယ်ပေးမည့် Function (Web ရော Mobile ပါ အဆင်ပြေအောင် ပြင်ဆင်ပြီး)
   Future<void> _pickReceiptImage() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -55,7 +56,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         imageQuality: 85,
       );
       if (pickedFile != null) {
-        setState(() => _receiptImage = pickedFile);
+        if (kIsWeb) {
+          // 💡 Web အတွက်ဖြစ်ပါက Cloudinary သို့ ပို့ရန် bytes အဖြစ် ကြိုဖတ်ထားမည်
+          final bytes = await pickedFile.readAsBytes();
+          setState(() {
+            _webImageBytes = bytes;
+            _receiptImage = pickedFile;
+          });
+        } else {
+          setState(() => _receiptImage = pickedFile);
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +77,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
 
-   
     if (_paymentMethod != 'Cash on Delivery' && _receiptImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -79,11 +88,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     setState(() => _isPlacingOrder = true);
+    
+    String finalReceiptUrl = ''; // Firestore ထဲ သွားသိမ်းမည့် Cloudinary Web URL အမှန်
+
     try {
+      // 💡 ၁။ Online Payment ဖြစ်ပါက ပုံကို Cloudinary သို့ အရင်တင်မည်
+      if (_paymentMethod != 'Cash on Delivery' && _receiptImage != null) {
+        String? uploadedUrl;
+        if (kIsWeb) {
+          uploadedUrl = await CloudinaryService.uploadImage(_webImageBytes); // Web အတွက် bytes ပို့သည်
+        } else {
+          uploadedUrl = await CloudinaryService.uploadImage(_receiptImage); // Mobile အတွက် file ပို့သည်
+        }
+
+        if (uploadedUrl == null) {
+          throw Exception("Could not upload receipt image to Cloudinary. Please try again.");
+        }
+        finalReceiptUrl = uploadedUrl; // 🎯 Cloudinary က ပေးသော secure_url အစစ်ကို ရယူခြင်း
+      }
+
       final cartState = ref.read(cartProvider);
       final user = FirebaseAuth.instance.currentUser;
 
-      // 💡 Firestore ထဲသို့ အချက်အလက်များ သိမ်းဆည်းခြင်း
+      // 💡 ၂။ ရလာသော Cloudinary URL ကို အချက်အလက်များနှင့်အတူ Firestore သို့ သိမ်းဆည်းခြင်း
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': user?.uid ?? 'guest',
         'userEmail': user?.email ?? 'guest',
@@ -92,7 +119,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         'address': _addressCtrl.text.trim(),
         'city': _cityCtrl.text.trim(),
         'paymentMethod': _paymentMethod,
-        'receiptUrl': _receiptImage != null ? _receiptImage!.path : '',
+        'receiptUrl': finalReceiptUrl, // 🎯 ဤနေရာတွင် Cloudinary URL ရောက်သွားပါပြီ (Admin မြင်ရမည့်အဓိကသော့ချက်)
         'items': cartState.items.map((item) => {
           'name': item.product.name, 'image': item.product.image,
           'price': item.product.price, 'quantity': item.quantity,
@@ -160,6 +187,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 onChanged: (v) => setState(() {
                   _paymentMethod = v!;
                   _receiptImage = null; 
+                  _webImageBytes = null; // 💡 Reset bytes
                 }),
                 title: Text(m, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                 activeColor: Colors.deepPurple,
@@ -200,7 +228,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     const Text('Upload Transfer Receipt:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54)),
                     const SizedBox(height: 10),
                     
-
                     InkWell(
                       onTap: _pickReceiptImage,
                       borderRadius: BorderRadius.circular(12),
@@ -224,7 +251,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(11),
                                 child: kIsWeb
-                                    ? Image.network(_receiptImage!.path, fit: BoxFit.cover)
+                                    ? (_webImageBytes != null 
+                                        ? Image.memory(_webImageBytes!, fit: BoxFit.cover) // 💡 Web ပေါ်တွင် Preview ပြရန် Memory Image ကိုသုံးရမည်
+                                        : const SizedBox())
                                     : Image.file(File(_receiptImage!.path), fit: BoxFit.cover),
                               ),
                       ),
