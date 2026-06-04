@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart'; // 💡 🎯 Web/Mobile တွင် Google Maps လင့်ခ်လှမ်းပွင့်စေရန် ထည့်သွင်းထားသည်
 
 class AdminOrdersScreen extends StatelessWidget {
   const AdminOrdersScreen({super.key});
@@ -109,7 +110,6 @@ class AdminOrdersScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // 💡 🎯 ပြင်ဆင်ချက်- Database ထဲကနေ ဆွဲထုတ်ကတည်းက 'createdAt' အလိုက် အသစ်ဆုံးကို ထိပ်ဆုံးကနေ ငြိမ်ငြိမ်သက်သက် တန်းစီထွက်လာအောင် Query ပြောင်းလဲလိုက်ခြင်း
         stream: FirebaseFirestore.instance
             .collection('orders')
             .orderBy('createdAt', descending: true)
@@ -123,7 +123,7 @@ class AdminOrdersScreen extends StatelessWidget {
             return const Center(child: Text('No orders received yet.', style: TextStyle(color: Colors.grey)));
           }
 
-          final sortedDocs = snapshot.data!.docs; // တုန်ခါမှုမရှိတော့ဘဲ တိုက်ရိုက် သုံးနိုင်ပြီဖြစ်သည်
+          final sortedDocs = snapshot.data!.docs;
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -136,6 +136,7 @@ class AdminOrdersScreen extends StatelessWidget {
               final total = data['totalAmount'] ?? 0;
               final paymentMethod = data['paymentMethod'] ?? 'Cash on Delivery';
               final receiptUrl = data['receiptUrl'] ?? '';
+              final locationUrl = data['locationUrl'] ?? ''; // 💡 🎯 Database ထဲမှ မြေပုံလင့်ခ်အား ဆွဲထုတ်ခြင်း
               final createdAt = data['createdAt'] as Timestamp?;
               
               final dateStr = createdAt != null 
@@ -188,6 +189,36 @@ class AdminOrdersScreen extends StatelessWidget {
                     _infoRow(Icons.location_on_outlined, 'Address: ${data['address'] ?? ''}, ${data['city'] ?? ''}'),
                     _infoRow(Icons.payment, 'Payment: $paymentMethod'),
                     
+                    // --- 🎯 တည်နေရာမြေပုံအား ကြည့်ရှုရန် ခလုတ်စနစ်သစ် (Web / Mobile နှစ်မျိုးလုံးတွင် ပွင့်ပါသည်) ---
+                    if (locationUrl.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            final Uri url = Uri.parse(locationUrl);
+                            try {
+                              // External Application Mode ဖြင့် ဖွင့်ပါက ဖုန်းတွင် Google Maps App ဖြင့် တိုက်ရိုက်ပွင့်ပြီး၊ Web တွင် Tab အသစ်ဖြင့် ပွင့်မည်ဖြစ်သည်
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Could not open map: $e")),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.map_rounded, color: Colors.green, size: 18),
+                          label: const Text('Open Customer Location on Map', style: TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.green.withOpacity(0.08),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+
                     if (receiptUrl.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       SizedBox(
@@ -258,4 +289,3 @@ class AdminOrdersScreen extends StatelessWidget {
     ),
   );
 }
-

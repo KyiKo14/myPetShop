@@ -1,14 +1,15 @@
 // lib/Screen/checkout_screen.dart
 import 'dart:io';
-import 'package:flutter/foundation.dart' show Uint8List, kIsWeb; // 💡 Uint8List ပေါင်းထည့်ထားသည်
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb; 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart'; 
+import 'package:geolocator/geolocator.dart'; // 💡 🎯 တည်နေရာ GPS ဖမ်းရန် ထည့်သွင်းထားသည်
 import 'package:mypetshop/Core/Provider/cart_provider.dart';
 import 'package:mypetshop/Screen/order_success_screen.dart';
-import 'package:mypetshop/Services/cloudinary_service.dart'; // 💡 သင့် Cloudinary Service ကို Import ချိတ်ဆက်လိုက်သည်
+import 'package:mypetshop/Services/cloudinary_service.dart'; 
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -27,7 +28,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isPlacingOrder = false;
 
   XFile? _receiptImage;
-  Uint8List? _webImageBytes; // 💡 Flutter Web အတွက် ပုံရွေးချယ်ပြီး Byte Data သိမ်းဆည်းရန်
+  Uint8List? _webImageBytes; 
   final ImagePicker _picker = ImagePicker();
 
   final Map<String, String> _paymentAccounts = {
@@ -48,7 +49,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     super.dispose();
   }
 
-  // 💡 ပြေစာဓာတ်ပုံ ရွေးချယ်ပေးမည့် Function (Web ရော Mobile ပါ အဆင်ပြေအောင် ပြင်ဆင်ပြီး)
+  // 💡 ပြေစာဓာတ်ပုံ ရွေးချယ်ပေးမည့် Function
   Future<void> _pickReceiptImage() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -57,7 +58,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       if (pickedFile != null) {
         if (kIsWeb) {
-          // 💡 Web အတွက်ဖြစ်ပါက Cloudinary သို့ ပို့ရန် bytes အဖြစ် ကြိုဖတ်ထားမည်
           final bytes = await pickedFile.readAsBytes();
           setState(() {
             _webImageBytes = bytes;
@@ -72,6 +72,35 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         SnackBar(content: Text('Error picking image: $e'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  // 💡 🎯 တည်နေရာ GPS ကို ခွင့်ပြုချက်တောင်းပြီး ဆွဲယူမည့် ဥပဒေစနစ် (Web နှင့် Mobile နှစ်ခုလုံး စံကိုက်သည်)
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // ၁။ စက် သို့မဟုတ် Browser တွင် GPS / တည်နေရာစနစ် ဖွင့်မဖွင့် စစ်ဆေးခြင်း
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled. Please enable your Location/GPS.');
+    }
+
+    // ၂။ ယခင်က Permission ပေးဖူးခြင်း ရှိမရှိ စစ်ဆေးခြင်း
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      // 🎯 ဤနေရာတွင် Chrome Web Browser (သို့မဟုတ် ဖုန်း) က Permission တောင်းဆိုသည့် ပေါ့ပ်အပ် တက်လာမည်ဖြစ်သည်
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied. Please enable it from your settings.');
+    } 
+
+    // ၃။ အားလုံး ခွင့်ပြုချက်ရပြီဆိုပါက တည်နေရာကို တိကျစွာ ဆွဲယူခြင်း
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
   }
 
   Future<void> _placeOrder() async {
@@ -89,28 +118,41 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     setState(() => _isPlacingOrder = true);
     
-    String finalReceiptUrl = ''; // Firestore ထဲ သွားသိမ်းမည့် Cloudinary Web URL အမှန်
+    String finalReceiptUrl = ''; 
+    String googleMapsLink = ''; // 💡 Admin ပြန်ကြည့်ရန် သိမ်းဆည်းမည့် Google Maps Link Variable
 
     try {
-      // 💡 ၁။ Online Payment ဖြစ်ပါက ပုံကို Cloudinary သို့ အရင်တင်မည်
+      // 🚨 🎯 အော်ဒါမတင်မီ User ၏ လက်ရှိ Location ကို အရင်ဖမ်းယူခြင်း
+      try {
+        Position? position = await _getCurrentLocation();
+        if (position != null) {
+          // Admin ဘက်က နှိပ်လိုက်လျှင် တစ်ခါတည်း တန်းပွင့်မည့် ကမ္ဘာသုံး Google Maps Standard URL တည်ဆောက်ခြင်း
+          googleMapsLink = 'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
+        }
+      } catch (locationError) {
+        // အကယ်၍ User က Permission ပိတ်ထားသော်လည်း အော်ဒါ ဆက်တင်နိုင်ရန် လင့်ခ်အလွတ်ဖြင့် ကျော်ဖြတ်စေမည်
+        debugPrint("Location fetching failed: $locationError");
+      }
+
+      // 💡 Online Payment ဖြစ်ပါက ပုံကို Cloudinary သို့ တင်ခြင်း
       if (_paymentMethod != 'Cash on Delivery' && _receiptImage != null) {
         String? uploadedUrl;
         if (kIsWeb) {
-          uploadedUrl = await CloudinaryService.uploadImage(_webImageBytes); // Web အတွက် bytes ပို့သည်
+          uploadedUrl = await CloudinaryService.uploadImage(_webImageBytes); 
         } else {
-          uploadedUrl = await CloudinaryService.uploadImage(_receiptImage); // Mobile အတွက် file ပို့သည်
+          uploadedUrl = await CloudinaryService.uploadImage(_receiptImage); 
         }
 
         if (uploadedUrl == null) {
           throw Exception("Could not upload receipt image to Cloudinary. Please try again.");
         }
-        finalReceiptUrl = uploadedUrl; // 🎯 Cloudinary က ပေးသော secure_url အစစ်ကို ရယူခြင်း
+        finalReceiptUrl = uploadedUrl; 
       }
 
       final cartState = ref.read(cartProvider);
       final user = FirebaseAuth.instance.currentUser;
 
-      // 💡 ၂။ ရလာသော Cloudinary URL ကို အချက်အလက်များနှင့်အတူ Firestore သို့ သိမ်းဆည်းခြင်း
+      // 💡 ရလာသော Google Maps Link နှင့် အချက်အလက်များအားလုံးကို Firestore သို့ သိမ်းဆည်းခြင်း
       await FirebaseFirestore.instance.collection('orders').add({
         'userId': user?.uid ?? 'guest',
         'userEmail': user?.email ?? 'guest',
@@ -119,7 +161,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         'address': _addressCtrl.text.trim(),
         'city': _cityCtrl.text.trim(),
         'paymentMethod': _paymentMethod,
-        'receiptUrl': finalReceiptUrl, // 🎯 ဤနေရာတွင် Cloudinary URL ရောက်သွားပါပြီ (Admin မြင်ရမည့်အဓိကသော့ချက်)
+        'receiptUrl': finalReceiptUrl, 
+        'locationUrl': googleMapsLink, // 🎯 ဤနေရာတွင် User ၏ GPS တည်နေရာလင့်ခ် ရောက်ရှိသွားပါပြီ!
         'items': cartState.items.map((item) => {
           'name': item.product.name, 'image': item.product.image,
           'price': item.product.price, 'quantity': item.quantity,
@@ -187,7 +230,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 onChanged: (v) => setState(() {
                   _paymentMethod = v!;
                   _receiptImage = null; 
-                  _webImageBytes = null; // 💡 Reset bytes
+                  _webImageBytes = null; 
                 }),
                 title: Text(m, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                 activeColor: Colors.deepPurple,
@@ -196,7 +239,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ==================== DYNAMIC ACCOUNT DISPLAY & RECEIPT UPLOAD ====================
             if (_paymentMethod != 'Cash on Delivery') ...[
               Container(
                 width: double.infinity,
@@ -252,7 +294,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 borderRadius: BorderRadius.circular(11),
                                 child: kIsWeb
                                     ? (_webImageBytes != null 
-                                        ? Image.memory(_webImageBytes!, fit: BoxFit.cover) // 💡 Web ပေါ်တွင် Preview ပြရန် Memory Image ကိုသုံးရမည်
+                                        ? Image.memory(_webImageBytes!, fit: BoxFit.cover) 
                                         : const SizedBox())
                                     : Image.file(File(_receiptImage!.path), fit: BoxFit.cover),
                               ),
