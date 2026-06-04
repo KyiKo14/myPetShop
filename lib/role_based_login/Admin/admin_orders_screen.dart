@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart'; // 💡 🎯 Web/Mobile တွင် Google Maps လင့်ခ်လှမ်းပွင့်စေရန် ထည့်သွင်းထားသည်
+import 'package:url_launcher/url_launcher.dart'; 
 
 class AdminOrdersScreen extends StatelessWidget {
   const AdminOrdersScreen({super.key});
@@ -35,6 +35,27 @@ class AdminOrdersScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  // 💡 🎯 စနစ်သစ်- Firestore ထဲမှ အော်ဒါအား အပြီးတိုင်ဖျက်ပစ်မည့် Function
+  Future<void> _deleteOrder(BuildContext context, String orderId) async {
+    try {
+      await FirebaseFirestore.instance.collection('orders').doc(orderId).delete();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order deleted permanently! 🗑️'), 
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete order: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -136,7 +157,7 @@ class AdminOrdersScreen extends StatelessWidget {
               final total = data['totalAmount'] ?? 0;
               final paymentMethod = data['paymentMethod'] ?? 'Cash on Delivery';
               final receiptUrl = data['receiptUrl'] ?? '';
-              final locationUrl = data['locationUrl'] ?? ''; // 💡 🎯 Database ထဲမှ မြေပုံလင့်ခ်အား ဆွဲထုတ်ခြင်း
+              final locationUrl = data['locationUrl'] ?? ''; 
               final createdAt = data['createdAt'] as Timestamp?;
               
               final dateStr = createdAt != null 
@@ -154,6 +175,41 @@ class AdminOrdersScreen extends StatelessWidget {
                   tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   childrenPadding: const EdgeInsets.all(16),
                   title: Text('Customer: ${data['customerName'] ?? 'Guest'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  
+                  // 🎯 ကြီးမားသော ပြင်ဆင်ချက်- ExpansionTile ၏ ညာဘက်အစွန်းတွင် အော်ဒါဖျက်နိုင်မည့် အမှိုက်ပုံး ခလုတ် ထည့်သွင်းခြင်း
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          title: const Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                              SizedBox(width: 8),
+                              Text('Delete Order?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                            ],
+                          ),
+                          content: const Text('Are you sure you want to delete this order permanently from database?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _deleteOrder(context, docId); // 🗑️ ဖျက်မည့် Function သို့ လှမ်းပို့ခြင်း
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, elevation: 0),
+                              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -166,8 +222,8 @@ class AdminOrdersScreen extends StatelessWidget {
                             decoration: BoxDecoration(color: _statusColor(status).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                             child: Text(status.toUpperCase(), style: TextStyle(color: _statusColor(status), fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
-                          const Spacer(),
-                          Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+                          const SizedBox(width: 10),
+                          Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple, fontSize: 14)),
                         ],
                       )
                     ],
@@ -189,7 +245,6 @@ class AdminOrdersScreen extends StatelessWidget {
                     _infoRow(Icons.location_on_outlined, 'Address: ${data['address'] ?? ''}, ${data['city'] ?? ''}'),
                     _infoRow(Icons.payment, 'Payment: $paymentMethod'),
                     
-                    // --- 🎯 တည်နေရာမြေပုံအား ကြည့်ရှုရန် ခလုတ်စနစ်သစ် (Web / Mobile နှစ်မျိုးလုံးတွင် ပွင့်ပါသည်) ---
                     if (locationUrl.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       SizedBox(
@@ -198,7 +253,6 @@ class AdminOrdersScreen extends StatelessWidget {
                           onPressed: () async {
                             final Uri url = Uri.parse(locationUrl);
                             try {
-                              // External Application Mode ဖြင့် ဖွင့်ပါက ဖုန်းတွင် Google Maps App ဖြင့် တိုက်ရိုက်ပွင့်ပြီး၊ Web တွင် Tab အသစ်ဖြင့် ပွင့်မည်ဖြစ်သည်
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             } catch (e) {
                               if (context.mounted) {

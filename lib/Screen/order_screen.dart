@@ -27,6 +27,27 @@ class OrderScreen extends StatelessWidget {
     }
   }
 
+  // 💡 🎯 စနစ်သစ်- User ဘက်မှ Pending ဖြစ်နေသော အော်ဒါအား ဖျက်/Cancel လုပ်မည့် Function
+  Future<void> _cancelAndSubtitleOrder(BuildContext context, String orderId) async {
+    try {
+      await FirebaseFirestore.instance.collection('orders').doc(orderId).delete();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your order has been cancelled and removed. ❌'), 
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to cancel order: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -49,7 +70,6 @@ class OrderScreen extends StatelessWidget {
       body: user == null
           ? const Center(child: Text('Please login to view orders'))
           : StreamBuilder<QuerySnapshot>(
-
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('userId', isEqualTo: user.uid)
@@ -62,7 +82,6 @@ class OrderScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return Center(child: Text('Something went wrong: ${snapshot.error}'));
                 }
-
 
                 final orders = snapshot.data?.docs ?? [];
                 final sortedOrders = List<QueryDocumentSnapshot>.from(orders);
@@ -202,6 +221,46 @@ class OrderScreen extends StatelessWidget {
                               ),
                             ],
                           ),
+
+                          // 🎯 ကြီးမားသော ပြင်ဆင်ချက်- အော်ဒါ Status က Pending ဖြစ်နေမှသာ ပေါ်လာမည့် Cancel ခလုတ်စနစ်
+                          if (status.toLowerCase() == 'pending') ...[
+                            const Divider(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      title: const Text('Cancel Order?', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      content: const Text('Are you sure you want to cancel and delete this pending order?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx), 
+                                          child: const Text('No', style: TextStyle(color: Colors.grey)),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            _cancelAndSubtitleOrder(context, doc.id); // ❌ ဖျက်ရန် လှမ်းခေါ်ခြင်း
+                                          },
+                                          child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.cancel_outlined, size: 16, color: Colors.red),
+                                label: const Text('Cancel & Delete Order', style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.red, width: 1.2),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     );
